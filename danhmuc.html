@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý Danh mục - Hệ thống Bán hàng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; padding: 20px; }
+        .card-header { background: #198754; color: white; font-weight: bold; } /* Đổi sang màu xanh lá cho hợp gu bán hàng */
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card shadow">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Danh mục sản phẩm</span>
+            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalDanhMuc" onclick="resetForm()">+ Thêm mới</button>
+        </div>
+        <div class="card-body">
+            <input type="text" id="search" class="form-control mb-3" placeholder="Tìm tên danh mục...">
+            
+            <table class="table table-bordered table-hover text-center">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên danh mục</th>
+                        <th>Mô tả</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="adamhuctable">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDanhMuc" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thông tin danh mục</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="id_danh_muc"> <div class="mb-3">
+                    <label class="form-label">Tên danh mục</label>
+                    <input type="text" id="ten" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Mô tả</label>
+                    <textarea id="mota" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="btnSave">Lưu lại</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    loadDanhMuc();
+
+    function loadDanhMuc() {
+        $.post('danh_muc_api.php', { action: 'fetch' }, function(data) {
+            let list = JSON.parse(data);
+            let rows = '';
+            list.forEach(item => {
+                rows += `
+                    <tr>
+<td>${item.id_danh_muc}</td> <td>${item.ten_danh_muc}</td>
+                        <td>${item.mo_ta}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm btn-edit" 
+                                data-id="${item.id_danh_muc}" 
+                                data-ten="${item.ten_danh_muc}" 
+                                data-mota="${item.mo_ta}">Sửa</button>
+                            <button class="btn btn-danger btn-sm btn-delete" data-id="${item.id_danh_muc}">Xóa</button>
+                        </td>
+                    </tr>`;
+            });
+            $('#adamhuctable').html(rows);
+        });
+    }
+
+    $('#btnSave').click(function() {
+        let id = $('#id_danh_muc').val();
+        let ten = $('#ten').val();
+        let mota = $('#mota').val();
+        let action = (id == '') ? 'insert' : 'update';
+
+        $.post('danh_muc_api.php', { action: action, id_danh_muc: id, ten: ten, mota: mota }, function() {
+            $('#modalDanhMuc').modal('hide');
+            loadDanhMuc();
+        });
+    });
+
+    $(document).on('click', '.btn-edit', function() {
+        $('#id_danh_muc').val($(this).data('id'));
+        $('#ten').val($(this).data('ten'));
+        $('#mota').val($(this).data('mota'));
+        $('#modalDanhMuc').modal('show');
+    });
+
+    $(document).on('click', '.btn-delete', function() {
+        if(confirm('Xóa danh mục này?')) {
+            $.post('danh_muc_api.php', { action: 'delete', id_danh_muc: $(this).data('id') }, function() {
+                loadDanhMuc();
+            });
+        }
+    });
+});
+
+function resetForm() {
+    $('#id_danh_muc').val('');
+    $('#ten').val('');
+    $('#mota').val('');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý Sản phẩm - Hệ thống Bán hàng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light p-4">
+
+<div class="container card shadow p-0">
+    <div class="card-header bg-success text-white d-flex justify-content-between py-3">
+        <h5 class="mb-0">📦 QUẢN LÝ SẢN PHẨM</h5>
+        <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalSP" onclick="resetForm()">+ Thêm SP</button>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover text-center">
+            <thead class="table-light">
+                <tr>
+                    <th>Mã SP</th><th>Tên sản phẩm</th><th>Danh mục</th><th>Đơn vị</th><th>Giá bán</th><th>Số lượng</th><th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="sanphamtable"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalSP" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h5>Thông tin sản phẩm</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="id_san_pham">
+                <div class="row g-3">
+                    <div class="col-6"><label>Tên SP</label><input type="text" id="ten" class="form-control"></div>
+                    <div class="col-6"><label>Mã SP</label><input type="text" id="ma" class="form-control"></div>
+                    <div class="col-6"><label>Danh mục</label><select id="id_danh_muc" class="form-select"></select></div>
+                    <div class="col-6"><label>Đơn vị</label><input type="text" id="don_vi" class="form-control"></div>
+                    <div class="col-4"><label>Giá nhập</label><input type="number" id="gia_nhap" class="form-control"></div>
+                    <div class="col-4"><label>Giá bán</label><input type="number" id="gia_ban" class="form-control"></div>
+                    <div class="col-4"><label>Số lượng</label><input type="number" id="so_luong" class="form-control"></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-primary" id="btnSave">Lưu dữ liệu</button></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    loadSP();
+    loadDM();
+
+    function loadSP() {
+        // Đã sửa đường dẫn thành sanpham_api.php
+        $.post('sanpham_api.php', { action: 'fetch' }, function(data) {
+            let list = JSON.parse(data);
+            let rows = '';
+            list.forEach(item => {
+                rows += `<tr>
+                    <td>${item.ma_san_pham}</td><td>${item.ten_san_pham}</td>
+                    <td>${item.ten_danh_muc}</td><td>${item.don_vi}</td>
+                    <td class="text-success fw-bold">${Number(item.gia_ban).toLocaleString()}</td>
+                    <td>${item.so_luong}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning btn-edit" data-all='${JSON.stringify(item)}'>Sửa</button>
+                        <button class="btn btn-sm btn-danger btn-delete" data-id="${item.id_san_pham}">Xóa</button>
+                    </td>
+                </tr>`;
+            });
+            $('#sanphamtable').html(rows);
+        });
+    }
+
+    function loadDM() {
+        // Đây là chỗ lấy dữ liệu cho ô chọn
+        $.post('sanpham_api.php', { action: 'fetch_danh_muc' }, function(data) {
+            let list = JSON.parse(data);
+            let opt = '<option value="">-- Chọn danh mục --</option>';
+            list.forEach(i => opt += `<option value="${i.id_danh_muc}">${i.ten_danh_muc}</option>`);
+            $('#id_danh_muc').html(opt);
+        });
+    }
+
+    $('#btnSave').click(function() {
+        let id = $('#id_san_pham').val();
+        let payload = {
+            action: (id == '') ? 'insert' : 'update',
+            id_san_pham: id,
+            ten: $('#ten').val(),
+            ma: $('#ma').val(),
+            id_danh_muc: $('#id_danh_muc').val(),
+            don_vi: $('#don_vi').val(),
+            gia_nhap: $('#gia_nhap').val(),
+            gia_ban: $('#gia_ban').val(),
+            so_luong: $('#so_luong').val()
+        };
+
+        $.post('sanpham_api.php', payload, function(res) {
+            if(res.trim() == "Success") {
+                $('#modalSP').modal('hide');
+                loadSP();
+            } else { alert("Lỗi: " + res); }
+        });
+    });
+
+    $(document).on('click', '.btn-edit', function() {
+        let item = $(this).data('all');
+        $('#id_san_pham').val(item.id_san_pham);
+        $('#ten').val(item.ten_san_pham);
+        $('#ma').val(item.ma_san_pham);
+        $('#id_danh_muc').val(item.id_danh_muc);
+        $('#don_vi').val(item.don_vi);
+        $('#gia_nhap').val(item.gia_nhap);
+        $('#gia_ban').val(item.gia_ban);
+        $('#so_luong').val(item.so_luong);
+        $('#modalSP').modal('show');
+    });
+
+    $(document).on('click', '.btn-delete', function() {
+        if(confirm('Xóa sản phẩm này?')) {
+            $.post('sanpham_api.php', { action: 'delete', id_san_pham: $(this).data('id') }, () => loadSP());
+        }
+    });
+});
+
+function resetForm() {
+    $('#id_san_pham, #ten, #ma, #don_vi, #gia_nhap, #gia_ban, #so_luong').val('');
+    $('#id_danh_muc').val('');
+}
+</script>
+</body>
+</html>
